@@ -14,22 +14,18 @@ class Szoba(ABC):
                 return False
         return True
 
-    def foglalas_lemond(self, szobaszam, lemond_datum):
-        for szoba in self.szobak:
-            if szoba.szobaszam == szobaszam:
-                return szoba.foglalas_lemond(lemond_datum)
-        return "Szoba nem található."
-
-        # Csak az első találatot töröljük
-        self.foglalasok.remove(foglalas_torles[0])
-        return f"Foglalás törölve a szobából {kezdo_datum.strftime('%Y-%m-%d')} dátumon."
+    def foglalas_lemond(self, lemond_datum):
+        for foglalas in self.foglalasok:
+            if foglalas['kezdo_datum'] <= lemond_datum <= foglalas['veg_datum']:
+                self.foglalasok.remove(foglalas)
+                return f"Foglalás törölve a szobából {lemond_datum.strftime('%Y-%m-%d')} dátumon."
+        return "Foglalás nem található."
 
     def foglal(self, kezdo_datum, veg_datum):
         if kezdo_datum > veg_datum or kezdo_datum < datetime.now():
             return f"Hibás dátumok. A foglalás kezdő dátuma nem lehet múltbeli, és a vége dátumnak a kezdő dátumnál későbbinek kell lennie."
         if not self.szabad_e(kezdo_datum, veg_datum):
             return f"Szoba {self.szobaszam} már foglalt ebben az időszakban."
-
         self.foglalasok.append({'kezdo_datum': kezdo_datum, 'veg_datum': veg_datum})
         return f"Szoba {self.szobaszam} foglalva lett {kezdo_datum.strftime('%Y-%m-%d')} - {veg_datum.strftime('%Y-%m-%d')}."
 
@@ -65,6 +61,10 @@ class Szalloda:
     def szoba_hozzaadas(self, szoba: Szoba):
         self.szobak.append(szoba)
 
+    def arak_megtekintese(self):
+        for szoba in self.szobak:
+            print(f"Szoba {szoba.szobaszam} - {szoba.__class__.__name__}: {szoba.ar} Ft/éjszaka")
+
     def adatfeltoltes(self):
         self.szoba_hozzaadas(EgyagyasSzoba(101, 50000))
         self.szoba_hozzaadas(KetagyasSzoba(102, 60000))
@@ -78,13 +78,19 @@ class Szalloda:
                 return szoba.foglal(kezdo_datum, veg_datum)
         return "Szoba nem található."
 
+    def foglalas_lemond(self, szobaszam, lemond_datum):
+        for szoba in self.szobak:
+            if szoba.szobaszam == szobaszam:
+                return szoba.foglalas_lemond(lemond_datum)
+        return "Szoba nem található."
+
 
 # Főprogram
 def foglalasi_folyamat(szalloda: Szalloda):
     szalloda.adatfeltoltes()
 
     while True:
-        valasztas = input("Mit szeretne tenni? (foglalasok, foglal, lemond, kilep): ")
+        valasztas = input("Mit szeretne tenni? (foglalasok, foglal, lemond, listaz, kilep): ")
         if valasztas == "foglalasok":
             print(szalloda.foglalasok_lekerdezes())
         elif valasztas == "foglal":
@@ -99,12 +105,13 @@ def foglalasi_folyamat(szalloda: Szalloda):
             lemond_datum_str = input("Adja meg a lemondás dátumát (yyyy-mm-dd): ")
             lemond_datum = datetime.strptime(lemond_datum_str, '%Y-%m-%d')
             print(szalloda.foglalas_lemond(szobaszam, lemond_datum))
+        elif valasztas == "listaz":
+            szalloda.arak_megtekintese()
         elif valasztas == "kilep":
             print("Viszlát!")
             break
         else:
             print("Érvénytelen választás.")
-
 
 szalloda = Szalloda()
 foglalasi_folyamat(szalloda)
